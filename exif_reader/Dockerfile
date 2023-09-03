@@ -12,11 +12,12 @@ COPY src/ ./src/
 
 RUN cargo build --release
 
-FROM debian:bullseye-slim
+FROM debian:latest
 
 WORKDIR /app
 
-RUN sudo apt update && apt-get install -y extra-runtime-dependencies &&  apt install libc6 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y libc6 && rm -rf /var/lib/apt/lists/*
+RUN apt policy libc6
 
 COPY --from=builder /app/target/release/exif_reader .
 
