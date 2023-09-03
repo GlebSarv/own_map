@@ -5,7 +5,7 @@ check:
 	cargo check
 
 run:
-	cargo run
+	cargo run -- --directory $(directory)
 
 test:
 	cargo test
