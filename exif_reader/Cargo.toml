@@ -1,0 +1,22 @@
+[package]
+name = "exif_reader"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[[bin]]
+name = "exif_reader"
+path = "src/main.rs"
+
+[dependencies]
+kamadak-exif = "0.5.4"
+cmake = "0.1.48"
+clap = "3.2.16"
+log = "0.4.17"
+chrono = "0.4.20"
+env_logger = "0.9.0"
+regex = "1.6.0"
+serde_json = "1.0.83"
+walkdir = "2"
