@@ -10,6 +10,7 @@ use exif::{In, Tag};
 use regex::Regex;
 use serde_json::json;
 
+/// PhotoData - strucure with photo's metadata
 #[derive(Debug, Clone)]
 pub struct PhotoData {
     lat: f32,
@@ -20,6 +21,7 @@ pub struct PhotoData {
     timestamp: String,
 }
 
+/// default data for photo
 impl Default for PhotoData {
     fn default() -> Self {
         PhotoData {
@@ -33,6 +35,13 @@ impl Default for PhotoData {
     }
 }
 
+/// implementation methods for PhotoData
+/// new - return new PhotoData object
+/// 
+/// set_long - parse metadata, and convert longitude from format `00 deg 00 min 00.0` to 00.0000
+/// set_lat - parse metadata, and convert latitude from format `00 deg 00 min 00.0` to 00.0000
+/// set_alitude - parse altitude
+/// build - setting long, lat and altitude for PhotoData
 impl PhotoData {
     fn new(name: String, path: String) -> PhotoData {
         PhotoData {
@@ -74,7 +83,7 @@ impl PhotoData {
         }
     }
 
-    fn factory(&mut self, tags: &str, values: &str) {
+    fn build(&mut self, tags: &str, values: &str) {
         match tags {
             "GPSLatitude" => self.set_lat(values),
             "GPSLongitude" => self.set_long(values),
@@ -85,6 +94,8 @@ impl PhotoData {
     }
 }
 
+
+/// Implementing displayng of PhotoData structure
 impl Display for PhotoData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -95,6 +106,9 @@ impl Display for PhotoData {
     }
 }
 
+/// Message - structure, which is sending to kafka
+/// - key: message key - String
+/// - value: serde_json::Value - body of message
 pub struct Message {
     pub key: String,
     pub value: serde_json::Value,
@@ -123,7 +137,13 @@ impl Message {
     }
 }
 
+/// Getting metadata from photo
+/// Args:
+///     - filename
+/// Output: 
+///     - respresents success or failure of data extraction 
 pub fn get_exif(filename: String) -> Result<HashMap<String, PhotoData>, exif::Error> {
+    // list of tags which are extract from photo
     let exif_tags = [
         Tag::GPSLatitude,
         Tag::GPSLongitude,
@@ -134,19 +154,24 @@ pub fn get_exif(filename: String) -> Result<HashMap<String, PhotoData>, exif::Er
     let mut photo: HashMap<String, PhotoData> = HashMap::new();
 
     for path in &[filename] {
+        // get file
         let file = std::fs::File::open(path)?;
+        // read file
         let mut bufreader = std::io::BufReader::new(&file);
         let exifreader = exif::Reader::new();
+        // reading metadata
         let exif = exifreader.read_from_container(&mut bufreader)?;
+        // pushing new k,v for HashMap, if key unique, insert new PhotoData 
         let data = photo
             .entry(path.to_string())
             .or_insert(PhotoData::new(path.to_string(), path.to_string()));
 
+        // iteration via exif_tags, and extraction information tags inforation
         for &tag in exif_tags.iter() {
             if let Some(field) = exif.get_field(tag, In::PRIMARY) {
                 let f = field.display_value().with_unit(&exif).to_string();
-                data.factory(&format!("{}", tag), &f);
-            }
+                data.build(&format!("{}", tag), &f);
+            } 
         }
     }
 

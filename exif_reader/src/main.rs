@@ -8,6 +8,9 @@ use dotenv::dotenv;
 use log::{error, info};
 use producer::produce;
 
+/// Main function
+/// 
+/// Required argument `directory` to define the directory in which photos will be searched
 #[tokio::main]
 async fn main() {
     dotenv().ok();

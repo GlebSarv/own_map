@@ -8,7 +8,7 @@ run:
 	cargo run -- --directory $(directory)
 
 test:
-	cargo test && cargo tarpaulin
+	cargo test && cargo tarpaulin -o html
 
 fmt:
 	cargo fmt -v --all

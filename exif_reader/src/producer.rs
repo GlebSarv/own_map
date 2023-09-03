@@ -6,16 +6,26 @@ use rdkafka::message::OwnedHeaders;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use std::time::Duration;
 
+/// async function for producing messages to kafka
+/// Args: 
+///     - Vector of messages
+/// Output: 
+///     - respresents success or failure of producing
 pub async fn produce(messages: Vec<Message>) -> Result<(), rdkafka::error::KafkaError> {
+    // get kafka's arguments from env file
     let config = Config::from_env();
     let config = config.unwrap();
+    
+    // define producer
     let producer: &FutureProducer = &ClientConfig::new()
         .set("bootstrap.servers", config.kafka.bootstrapserver)
         .set("message.timeout.ms", format!("{}", config.kafka.timeout))
         .create()
         .expect("Producer creation error");
 
+    // cycle via messages
     for message in messages {
+        // produce message
         let producing_message = producer
             .send(
                 FutureRecord::to(&config.kafka.topics)
@@ -26,9 +36,10 @@ pub async fn produce(messages: Vec<Message>) -> Result<(), rdkafka::error::Kafka
             )
             .await;
 
+        // Determining whether messages were successfully sent to a kafka topic
         match producing_message {
             Ok((int_value, long_value)) => {
-                info!("{:?} {} {}", producing_message, int_value, long_value);
+                println!("{:?} {} {}", producing_message, int_value, long_value);
             }
             Err((kafka_error, _)) => {
                 return Err(kafka_error);

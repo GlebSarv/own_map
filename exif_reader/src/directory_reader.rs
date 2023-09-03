@@ -1,13 +1,20 @@
 use crate::message::{get_exif, Message};
 use walkdir::WalkDir;
 
+/// Recursive traversal directories with photos
+/// Args: 
+///     - directory: &str
+/// Output: 
+///     - respresents success or failure of recursive traversal
+
 pub fn walking(directory: &str) -> Result<Vec<Message>, walkdir::Error> {
     let mut messages: Vec<Message> = Vec::new();
+    // walking by directories
     for entry in WalkDir::new(directory) {
         if entry.is_err() {
             return Err(entry.err().unwrap());
         }
-
+        // if file isn't directory, exctraction EXIF information 
         if !entry.as_ref().unwrap().file_type().is_dir() {
             let filename = entry?.path().display().to_string();
             match get_exif(filename) {
