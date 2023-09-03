@@ -1,0 +1,5 @@
+version: '3.5'
+services:
+  exif_reader:
+    build:
+      context: ./exif_reader
