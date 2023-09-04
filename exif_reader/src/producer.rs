@@ -39,7 +39,7 @@ pub async fn produce(messages: Vec<Message>) -> Result<(), rdkafka::error::Kafka
         // Determining whether messages were successfully sent to a kafka topic
         match producing_message {
             Ok((int_value, long_value)) => {
-                println!("{:?} {} {}", producing_message, int_value, long_value);
+                info!("{:?} {} {}", producing_message, int_value, long_value);
             }
             Err((kafka_error, _)) => {
                 return Err(kafka_error);

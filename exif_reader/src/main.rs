@@ -2,6 +2,7 @@ mod config;
 mod directory_reader;
 mod message;
 mod producer;
+mod utils;
 
 use clap::{App, Arg};
 use dotenv::dotenv;
@@ -9,7 +10,7 @@ use log::{error, info};
 use producer::produce;
 
 /// Main function
-/// 
+///
 /// Required argument `directory` to define the directory in which photos will be searched
 #[tokio::main]
 async fn main() {

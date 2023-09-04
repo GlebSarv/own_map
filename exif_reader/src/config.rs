@@ -4,7 +4,7 @@ use serde::Deserialize;
 /// KafkaConfig structure to defining parameters for producing messages to kafka
 /// - bootstrapserver: host:port kafka server
 /// - topics: topics for producing message
-/// - timeout: time for refusing 
+/// - timeout: time for refusing
 
 #[derive(Debug, Deserialize)]
 pub struct KafkaConfig {
@@ -18,7 +18,6 @@ pub struct KafkaConfig {
 pub struct Config {
     pub kafka: KafkaConfig,
 }
-
 
 impl Config {
     /// implementing method for reading data from .env file
@@ -39,7 +38,7 @@ mod test {
     use dotenv::dotenv;
 
     /// testing reading .env file
-    
+
     #[test]
     fn test_config() {
         dotenv().ok();

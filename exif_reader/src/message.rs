@@ -6,6 +6,7 @@ use std::{
     str::FromStr,
 };
 
+use crate::utils::convert_coordinate;
 use exif::{In, Tag};
 use regex::Regex;
 use serde_json::json;
@@ -37,7 +38,7 @@ impl Default for PhotoData {
 
 /// implementation methods for PhotoData
 /// new - return new PhotoData object
-/// 
+///
 /// set_long - parse metadata, and convert longitude from format `00 deg 00 min 00.0` to 00.0000
 /// set_lat - parse metadata, and convert latitude from format `00 deg 00 min 00.0` to 00.0000
 /// set_alitude - parse altitude
@@ -55,25 +56,11 @@ impl PhotoData {
     }
 
     fn set_long(&mut self, row_long: &str) {
-        let re = Regex::new(r"^(\d+) deg (\d+) min (\d*[.]?\d+)").unwrap();
-        for r in re.captures_iter(row_long) {
-            let deg: f32 = FromStr::from_str(&r[1]).unwrap();
-            let min: f32 = FromStr::from_str(&r[2]).unwrap();
-            let sec: f32 = FromStr::from_str(&r[3]).unwrap();
-            let long = deg + min / 60.0 + sec / 3600.0;
-            self.long = long;
-        }
+        self.long = convert_coordinate(row_long)
     }
 
     fn set_lat(&mut self, row_lat: &str) {
-        let re = Regex::new(r"^(\d+) deg (\d+) min (\d*[.]?\d+)").unwrap();
-        for r in re.captures_iter(row_lat) {
-            let deg: f32 = FromStr::from_str(&r[1]).unwrap();
-            let min: f32 = FromStr::from_str(&r[2]).unwrap();
-            let sec: f32 = FromStr::from_str(&r[3]).unwrap();
-            let lat = deg + min / 60.0 + sec / 3600.0;
-            self.lat = lat;
-        }
+        self.lat = convert_coordinate(row_lat)
     }
 
     fn set_altitude(&mut self, row_altitude: &str) {
@@ -93,7 +80,6 @@ impl PhotoData {
         };
     }
 }
-
 
 /// Implementing displayng of PhotoData structure
 impl Display for PhotoData {
@@ -140,8 +126,8 @@ impl Message {
 /// Getting metadata from photo
 /// Args:
 ///     - filename
-/// Output: 
-///     - respresents success or failure of data extraction 
+/// Output:
+///     - respresents success or failure of data extraction
 pub fn get_exif(filename: String) -> Result<HashMap<String, PhotoData>, exif::Error> {
     // list of tags which are extract from photo
     let exif_tags = [
@@ -161,7 +147,7 @@ pub fn get_exif(filename: String) -> Result<HashMap<String, PhotoData>, exif::Er
         let exifreader = exif::Reader::new();
         // reading metadata
         let exif = exifreader.read_from_container(&mut bufreader)?;
-        // pushing new k,v for HashMap, if key unique, insert new PhotoData 
+        // pushing new k,v for HashMap, if key unique, insert new PhotoData
         let data = photo
             .entry(path.to_string())
             .or_insert(PhotoData::new(path.to_string(), path.to_string()));
@@ -171,7 +157,7 @@ pub fn get_exif(filename: String) -> Result<HashMap<String, PhotoData>, exif::Er
             if let Some(field) = exif.get_field(tag, In::PRIMARY) {
                 let f = field.display_value().with_unit(&exif).to_string();
                 data.build(&format!("{}", tag), &f);
-            } 
+            }
         }
     }
 
@@ -186,14 +172,13 @@ mod test {
     #[test]
     fn test_get_exif() {
         let filename = "../test_data/test_1.jpg".to_string();
-
         let filedata = get_exif(filename);
         assert!(matches!(filedata, Ok(_)));
+        
         let filedata = filedata.unwrap();
-
         let filename = "../test_data/test_1.jpg";
         let metadata = filedata.get(filename).unwrap();
-
+        
         assert_eq!(metadata.altitude, 27.813);
         assert_eq!(metadata.long, 39.032085);
         assert_eq!(metadata.lat, 45.043938);
