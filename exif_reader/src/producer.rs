@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::message::Message;
-use log::info;
+use crate::logger;
+
 use rdkafka::config::ClientConfig;
 use rdkafka::message::OwnedHeaders;
 use rdkafka::producer::{FutureProducer, FutureRecord};
@@ -18,14 +19,16 @@ pub async fn produce(messages: Vec<Message>) -> Result<(), rdkafka::error::Kafka
     
     // define producer
     let producer: &FutureProducer = &ClientConfig::new()
-        .set("bootstrap.servers", config.kafka.bootstrapserver)
+        .set("bootstrap.servers", &config.kafka.bootstrapserver)
         .set("message.timeout.ms", format!("{}", config.kafka.timeout))
         .create()
         .expect("Producer creation error");
-
+    logger::log_info(&format!("Start producing message to kafka on {}, ", config.kafka.bootstrapserver));
     // cycle via messages
     for message in messages {
         // produce message
+        logger::log_debug("{message}");
+        
         let producing_message = producer
             .send(
                 FutureRecord::to(&config.kafka.topics)
@@ -39,9 +42,10 @@ pub async fn produce(messages: Vec<Message>) -> Result<(), rdkafka::error::Kafka
         // Determining whether messages were successfully sent to a kafka topic
         match producing_message {
             Ok((int_value, long_value)) => {
-                info!("{:?} {} {}", producing_message, int_value, long_value);
+                logger::log_debug(&format!("{:?} {} {}", producing_message, int_value, long_value));
             }
             Err((kafka_error, _)) => {
+                logger::log_error(&format!("Error in delivering message to kafka topic {:?}", kafka_error));
                 return Err(kafka_error);
             }
         }

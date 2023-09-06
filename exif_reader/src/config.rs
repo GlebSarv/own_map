@@ -13,10 +13,18 @@ pub struct KafkaConfig {
     pub timeout: i32,
 }
 
+#[warn(non_camel_case_types)]
+#[derive(Debug, Deserialize)]
+pub struct gRPCServer {
+    pub server: String,
+    pub port: i32
+}
+
 /// Config structure to defining KafkaConfig
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub kafka: KafkaConfig,
+    pub grpcserver: gRPCServer,
 }
 
 impl Config {

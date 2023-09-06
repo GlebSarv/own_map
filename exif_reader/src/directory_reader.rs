@@ -1,4 +1,6 @@
 use crate::message::{get_exif, Message};
+use crate::logger;
+
 use walkdir::WalkDir;
 
 /// Recursive traversal directories with photos
@@ -12,14 +14,22 @@ pub fn walking(directory: &str) -> Result<Vec<Message>, walkdir::Error> {
     // walking by directories
     for entry in WalkDir::new(directory) {
         if entry.is_err() {
+            logger::log_error("Bad directory {directory}");
             return Err(entry.err().unwrap());
         }
         // if file isn't directory, exctraction EXIF information
         if !entry.as_ref().unwrap().file_type().is_dir() {
             let filename = entry?.path().display().to_string();
-            match get_exif(filename) {
-                Ok(e) => messages.push(Message::new(e)),
-                Err(_error) => (),
+
+            match get_exif(&filename) {
+                Ok(e) => {
+                    logger::log_debug(&format!("Push new message for {}: {:?}", filename, e));
+                    messages.push(Message::new(e))
+                },
+                Err(error) => {
+                    logger::log_debug(&format!("{}", error.to_string()));
+                    ()
+                },
             }
         }
     }

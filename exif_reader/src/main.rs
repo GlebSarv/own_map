@@ -3,13 +3,12 @@ mod directory_reader;
 mod message;
 mod producer;
 mod utils;
+mod logger;
 
 use producer::produce;
 
-use clap::{App, Arg};
 use dotenv::dotenv;
-use log::{error, info};
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{transport::Server, Request, Response};
 
 
 use exif_readers::exif_readers_server::{ExifReaders, ExifReadersServer};
@@ -28,16 +27,19 @@ impl ExifReaders for ExifReaderService {
         &self,
         request: Request<ExifReaderRequest>
     ) -> Result<tonic::Response<ExifReadersReply>, tonic::Status> {
-        println!("Starting request");
+        
+        logger::log_info("Starting request from remote client");
+        
         let directory_name = &request.into_inner().directory_name;
+        logger::log_debug("{directory_name}");
 
         if let Ok(messages) = directory_reader::walking(directory_name) {
             let result = produce(messages).await;
 
             if result.is_err() {
-                error!("Error while producing messages");
+                logger::log_error(&format!("Error while producing messages, {:?}", result));
             } else {
-                info!("Succsessfully delivering messages")
+                logger::log_info("Succsessfully delivering messages");
             }
         }
 
@@ -51,33 +53,15 @@ impl ExifReaders for ExifReaderService {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
+
+    logger::init_logger();
+    logger::log_info("Start service");
+
+    let grpc_conf = config::Config::from_env().unwrap();
+    let addr = format!("{}:{}", grpc_conf.grpcserver.server, grpc_conf.grpcserver.port).parse().unwrap();
     
-    let matches = App::new("exif_reader")
-        .version(option_env!("CARGO_PKG_VERSION").unwrap_or(""))
-        .arg(
-            Arg::with_name("directory")
-                .short('d')
-                .long("directory")
-                .help("Specify directory with photo")
-                .takes_value(true)
-                .required(true),
-        )
-        .get_matches();
-
-    // let directory = matches.value_of("directory").unwrap();
-
-    // if let Ok(messages) = directory_reader::walking(directory) {
-    //     let result = produce(messages).await;
-
-    //     if result.is_err() {
-    //         error!("Error while producing messages");
-    //     } else {
-    //         info!("Succsessfully delivering messages")
-    //     }
-    // }
-    let addr = "127.0.0.1:50051".parse().unwrap();
     let serv = ExifReaderService::default();
-
+    logger::log_info(&format!("Start gRPC server on {}:{}", grpc_conf.grpcserver.server, grpc_conf.grpcserver.port));
     Server::builder()
         .add_service(ExifReadersServer::new(serv))
         .serve(addr)

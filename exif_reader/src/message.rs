@@ -128,7 +128,7 @@ impl Message {
 ///     - filename
 /// Output:
 ///     - respresents success or failure of data extraction
-pub fn get_exif(filename: String) -> Result<HashMap<String, PhotoData>, exif::Error> {
+pub fn get_exif(filename: &str) -> Result<HashMap<String, PhotoData>, exif::Error> {
     // list of tags which are extract from photo
     let exif_tags = [
         Tag::GPSLatitude,
@@ -139,7 +139,7 @@ pub fn get_exif(filename: String) -> Result<HashMap<String, PhotoData>, exif::Er
 
     let mut photo: HashMap<String, PhotoData> = HashMap::new();
 
-    for path in &[filename] {
+    for path in [filename] {
         // get file
         let file = std::fs::File::open(path)?;
         // read file
@@ -171,8 +171,8 @@ mod test {
 
     #[test]
     fn test_get_exif() {
-        let filename = "../test_data/test_1.jpg".to_string();
-        let filedata = get_exif(filename);
+        let filename = "../test_data/test_1.jpg";
+        let filedata = get_exif(&filename);
         assert!(matches!(filedata, Ok(_)));
         
         let filedata = filedata.unwrap();
@@ -186,8 +186,8 @@ mod test {
 
     #[test]
     fn test_wrong_directory() {
-        let filename = "../../test_data/test_1.jpg".to_string();
-        let filedata = get_exif(filename);
+        let filename = "../../test_data/test_1.jpg";
+        let filedata = get_exif(&filename);
         assert!(matches!(filedata, Err(_)));
     }
 
