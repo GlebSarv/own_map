@@ -1,28 +1,45 @@
-use walkdir::WalkDir;
-use crate::message::get_exif;
+use crate::message::{get_exif, Message};
+use crate::logger;
 
-pub fn walking(directory: &str) -> Result<String, walkdir::Error> {
-    
+use walkdir::WalkDir;
+
+/// Recursive traversal directories with photos
+/// Args:
+///     - directory: &str
+/// Output:
+///     - respresents success or failure of recursive traversal
+
+pub fn walking(directory: &str) -> Result<Vec<Message>, walkdir::Error> {
+    let mut messages: Vec<Message> = Vec::new();
+    // walking by directories
     for entry in WalkDir::new(directory) {
         if entry.is_err() {
-            return  Err(entry.err().unwrap());
+            logger::log_error("Bad directory {directory}");
+            return Err(entry.err().unwrap());
         }
-        
+        // if file isn't directory, exctraction EXIF information
         if !entry.as_ref().unwrap().file_type().is_dir() {
             let filename = entry?.path().display().to_string();
-            let exif = get_exif(filename);
-            println!("{:?}", exif);
 
+            match get_exif(&filename) {
+                Ok(e) => {
+                    logger::log_debug(&format!("Push new message for {}: {:?}", filename, e));
+                    messages.push(Message::new(e))
+                },
+                Err(error) => {
+                    logger::log_debug(&format!("{}", error.to_string()));
+                    ()
+                },
+            }
         }
     }
 
-    Ok("ok".to_string())
+    Ok(messages)
 }
 
 #[cfg(test)]
 mod test {
     use crate::directory_reader::walking;
-    
 
     #[test]
     fn test_walk_directory() {
@@ -31,12 +48,10 @@ mod test {
         assert!(matches!(result, Ok(_)));
     }
 
-
     #[test]
     fn test_wrong_directory() {
         let directory = "../../test_data/";
         let result = walking(directory);
         assert!(matches!(result, Err(_)));
     }
-
 }

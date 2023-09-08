@@ -1,0 +1,15 @@
+syntax = "proto3";
+package exif_readers;
+
+
+service ExifReaders {
+    rpc WalkingDirectory (ExifReaderRequest) returns (ExifReadersReply);
+}
+
+message ExifReaderRequest {
+    string directory_name = 1;
+}
+
+message ExifReadersReply {
+
+}
