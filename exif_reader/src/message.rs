@@ -1,3 +1,4 @@
+// Import necessary external crates and libraries.
 extern crate exif;
 
 use std::{
@@ -6,12 +7,12 @@ use std::{
     str::FromStr,
 };
 
-use crate::utils::convert_coordinate;
+use crate::utils::{convert_coordinate, convert_time_to_iso_format};
 use exif::{In, Tag};
 use regex::Regex;
 use serde_json::json;
 
-/// PhotoData - strucure with photo's metadata
+// Define a struct to hold photo data.
 #[derive(Debug, Clone)]
 pub struct PhotoData {
     lat: f32,
@@ -22,9 +23,10 @@ pub struct PhotoData {
     timestamp: String,
 }
 
-/// default data for photo
+// Implement the default trait for PhotoData.
 impl Default for PhotoData {
     fn default() -> Self {
+        // Create a default PhotoData instance.
         PhotoData {
             lat: 0.0,
             long: 0.0,
@@ -36,15 +38,11 @@ impl Default for PhotoData {
     }
 }
 
-/// implementation methods for PhotoData
-/// new - return new PhotoData object
-///
-/// set_long - parse metadata, and convert longitude from format `00 deg 00 min 00.0` to 00.0000
-/// set_lat - parse metadata, and convert latitude from format `00 deg 00 min 00.0` to 00.0000
-/// set_alitude - parse altitude
-/// build - setting long, lat and altitude for PhotoData
+// Implement methods for the PhotoData struct.
 impl PhotoData {
+    // Create a new PhotoData instance with specified name and path.
     fn new(name: String, path: String) -> PhotoData {
+        // Initialize a PhotoData instance with default values.
         PhotoData {
             lat: 0.0,
             long: 0.0,
@@ -55,33 +53,38 @@ impl PhotoData {
         }
     }
 
+    // Set the longitude value of PhotoData.
     fn set_long(&mut self, row_long: &str) {
         self.long = convert_coordinate(row_long)
     }
 
+    // Set the latitude value of PhotoData.
     fn set_lat(&mut self, row_lat: &str) {
         self.lat = convert_coordinate(row_lat)
     }
 
+    // Set the altitude value of PhotoData.
     fn set_altitude(&mut self, row_altitude: &str) {
+        // Define a regular expression pattern for altitude extraction.
         let re = Regex::new(r"^(\d*[.]?\d+)").unwrap();
         for r in re.captures_iter(row_altitude) {
             self.altitude = FromStr::from_str(&r[1]).unwrap();
         }
     }
 
+    // Build PhotoData attributes based on provided tags and values.
     fn build(&mut self, tags: &str, values: &str) {
         match tags {
             "GPSLatitude" => self.set_lat(values),
             "GPSLongitude" => self.set_long(values),
             "GPSAltitude" => self.set_altitude(values),
-            "DateTime" => self.timestamp = values.to_string(),
+            "DateTime" => self.timestamp = convert_time_to_iso_format(values),
             &_ => (),
         };
     }
 }
 
-/// Implementing displayng of PhotoData structure
+// Implement the Display trait for PhotoData.
 impl Display for PhotoData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -92,16 +95,17 @@ impl Display for PhotoData {
     }
 }
 
-/// Message - structure, which is sending to kafka
-/// - key: message key - String
-/// - value: serde_json::Value - body of message
+// Define a struct to represent a message.
 pub struct Message {
     pub key: String,
     pub value: serde_json::Value,
 }
 
+// Implement methods for the Message struct.
 impl Message {
+    // Create a new Message instance from a HashMap of PhotoData.
     pub fn new(exif: HashMap<String, PhotoData>) -> Self {
+        // Extract keys from the HashMap.
         let keys: Vec<String> = exif.clone().into_keys().collect();
         let mut title = "".to_string();
         let mut value = json!({});
@@ -109,10 +113,12 @@ impl Message {
         for key in keys.into_iter() {
             let data = exif.get(&key).unwrap();
             title = key;
+            // Build a JSON value with lat, long, altitude, and timestamp.
             value = json!({
                 "lat": data.lat,
                 "long": data.long,
                 "altitude": data.altitude,
+                "tmstmp": data.timestamp,
             });
         }
 
@@ -123,13 +129,9 @@ impl Message {
     }
 }
 
-/// Getting metadata from photo
-/// Args:
-///     - filename
-/// Output:
-///     - respresents success or failure of data extraction
+// Define a function to extract EXIF data from a photo file.
 pub fn get_exif(filename: &str) -> Result<HashMap<String, PhotoData>, exif::Error> {
-    // list of tags which are extract from photo
+    // Define an array of EXIF tags to extract.
     let exif_tags = [
         Tag::GPSLatitude,
         Tag::GPSLongitude,
@@ -140,19 +142,15 @@ pub fn get_exif(filename: &str) -> Result<HashMap<String, PhotoData>, exif::Erro
     let mut photo: HashMap<String, PhotoData> = HashMap::new();
 
     for path in [filename] {
-        // get file
         let file = std::fs::File::open(path)?;
-        // read file
         let mut bufreader = std::io::BufReader::new(&file);
         let exifreader = exif::Reader::new();
-        // reading metadata
         let exif = exifreader.read_from_container(&mut bufreader)?;
-        // pushing new k,v for HashMap, if key unique, insert new PhotoData
+
         let data = photo
             .entry(path.to_string())
             .or_insert(PhotoData::new(path.to_string(), path.to_string()));
 
-        // iteration via exif_tags, and extraction information tags inforation
         for &tag in exif_tags.iter() {
             if let Some(field) = exif.get_field(tag, In::PRIMARY) {
                 let f = field.display_value().with_unit(&exif).to_string();
@@ -164,13 +162,15 @@ pub fn get_exif(filename: &str) -> Result<HashMap<String, PhotoData>, exif::Erro
     Ok(photo)
 }
 
+// Define a module for testing.
 #[cfg(test)]
 mod test {
-
     use crate::message::{get_exif, PhotoData};
 
+    // Define a test function for extracting EXIF data.
     #[test]
     fn test_get_exif() {
+        // Define a test photo file.
         let filename = "../test_data/test_1.jpg";
         let filedata = get_exif(&filename);
         assert!(matches!(filedata, Ok(_)));
@@ -179,11 +179,14 @@ mod test {
         let filename = "../test_data/test_1.jpg";
         let metadata = filedata.get(filename).unwrap();
         
+        // Perform assertions on extracted metadata.
         assert_eq!(metadata.altitude, 27.813);
         assert_eq!(metadata.long, 39.032085);
         assert_eq!(metadata.lat, 45.043938);
+        assert_eq!(metadata.timestamp, "2021-01-04T14:49:57+00:00");
     }
 
+    // Define a test function for handling an invalid directory.
     #[test]
     fn test_wrong_directory() {
         let filename = "../../test_data/test_1.jpg";
@@ -191,12 +194,15 @@ mod test {
         assert!(matches!(filedata, Err(_)));
     }
 
+    // Define a test function for default PhotoData values.
     #[test]
     fn test_default() {
         let photo_data = PhotoData::default();
 
+        // Perform assertions on default values.
         assert_eq!(photo_data.altitude, 0.0);
         assert_eq!(photo_data.long, 0.0);
         assert_eq!(photo_data.lat, 0.0);
     }
 }
+
