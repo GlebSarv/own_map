@@ -18,3 +18,7 @@ Cargo.lock
 
 .env
 exif_reader/tarpaulin-report.html
+geo_searcher/
+.vscode/
+settings.json
+go.work*
