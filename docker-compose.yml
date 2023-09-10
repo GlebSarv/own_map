@@ -3,7 +3,8 @@ services:
   exif_reader:
     build:
       context: ./exif_reader
-
+    ports:
+            - ${GRPC_PORT}:5051
   zookeeper:
     image:  confluentinc/cp-zookeeper
     container_name: zookeeper
@@ -38,13 +39,3 @@ services:
     volumes:
       - ./pg_data:/var/pg_data
 
-
-  db_test:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_USER: ${PG_USER}
-      POSTGRES_PASSWORD: ${PG_PASSWORD}
-      POSTGRES_DB: ${PG_DATABASE}
-    ports:
-      - 5433:5432
