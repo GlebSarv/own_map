@@ -9,7 +9,7 @@ file_name: str = ".env"
 class CommonSettings(BaseSettings):
    
     if os.path.exists(f"{BASE_DIR/file_name}"):
-        print(f"{BASE_DIR/file_name}")
+        
         model_config = SettingsConfigDict (
             env_file=f"{BASE_DIR}/{file_name}",
             env_file_encoding="utf-8"
@@ -17,6 +17,4 @@ class CommonSettings(BaseSettings):
     else:
         model_config = SettingsConfigDict(
             env_file=None,
-            env_file_encoding="utf-8"
         )
-
