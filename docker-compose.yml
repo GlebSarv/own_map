@@ -38,4 +38,20 @@ services:
       - ${PG_PORT}:5432
     volumes:
       - ./pg_data:/var/pg_data
+  mongo:
+    image: mongo:4.4
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASS}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME}
+    ports:
+      - ${MONGO_PORT}:27017
 
+
+  memcached:
+    image: memcached:latest
+    ports:
+      - 11211:11211
+    volumes:
+      - memcached-data:/data
